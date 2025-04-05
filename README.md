@@ -41,7 +41,7 @@ The pipeline requires Python 3.6+ (tested with Pytho 3.11.8) and the following l
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/hantavirus-assembly.git
+git clone https://github.com/viralemergence/SNVler.git
 cd hantavirus-assembly
 ```
 
