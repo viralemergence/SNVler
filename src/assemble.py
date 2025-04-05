@@ -7,7 +7,7 @@ import csv
 def run_fastqc(input_files, output_dir):
     """Run QC (here using nanoQC as an example) on each input file."""
     for f in input_files:
-        cmd = ["nanoQC", "-o", f, output_dir]
+        cmd = ["nanoQC", "-o", output_dir, f]
         subprocess.run(cmd, check=True)
         print(f"QC complete for {f}")
 
