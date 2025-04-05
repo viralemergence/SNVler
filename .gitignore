@@ -5,3 +5,5 @@
 *.html
 Results/*
 Test/*
+src/assemble.ipynb
+NanoQC.log
