@@ -1,2 +1,2 @@
 # SNVler
- Tools for assembling genomes for Orthohantavirus sinnombreense
+ A tool for assembling Hantavirus genomes from Nanopore data
