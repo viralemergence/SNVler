@@ -1,0 +1,7 @@
+./Results
+./Test 
+.DS_Store
+*/DS_Store
+*.html
+Results/*
+Test/*

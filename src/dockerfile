@@ -1,0 +1,23 @@
+# Use the official Miniconda3 image as the base image
+FROM ubuntu:22.04
+FROM continuumio/miniconda3
+
+# Set noninteractive mode for apt-get (if needed)
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create a new conda environment with Python 3.11.8 and install required packages.
+# We specify conda-forge and bioconda channels for the tools and dependencies.
+RUN conda create -n hantavirus_env python=3.11.8 -y && \
+    conda install -n hantavirus_env -c conda-forge -c bioconda nanoqc porechop minimap2 samtools ivar biopython pandas cyvcf2 -y && \
+    conda clean -afy
+
+# Set the working directory
+WORKDIR /app
+
+# Copy your pipeline scripts into the container
+COPY assemble.py /app/assemble.py
+
+
+# Set the entrypoint so that the pipeline script runs within the conda environment.
+# When the container starts, it will call the pipeline.
+ENTRYPOINT ["conda", "run", "-n", "hantavirus_env", "python3", "/app/assemble_hantavirus.py"]
