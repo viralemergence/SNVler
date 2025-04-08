@@ -27,7 +27,12 @@ Ensure the following command-line tools are installed and available in your `PAT
 You can install these using [Conda](https://docs.conda.io/en/latest/) from the `conda-forge` and `bioconda` channels:
 
 ```bash
-conda install -c conda-forge -c bioconda nanoQC porechop minimap2 samtools ivar
+#If installing on an ARM mac (M processor), create an OSX-64 environment first
+CONDA_SUBDIR=osx-64 conda create -n SNVler python=3.11
+#Activate the environment
+conda activate SNVler
+#Install packages
+conda install -c conda-forge -c bioconda nanoQC porechop minimap2 samtools ivar pandas
 ```
 
 ### Python Dependencies
@@ -47,7 +52,9 @@ cd hantavirus-assembly
 
 2. Install the required external tools and Python dependencies as described in the Requirements section.
 
-## Usage 
+## Basic Usage
+
+You can declare each sample individually, or you can use an Excel/CSV file to automatically assemble the genomes from all the samples in a directory
 
 ```bash
 python3 assemble_hantavirus.py \
@@ -64,9 +71,6 @@ python3 assemble_hantavirus.py \
 - --input: One or more input FASTQ (or FAST5) files.
 - --references: One or more reference FASTA files for each genome segment.
 - --primer_bed: (Optional) Primer BED file for trimming/mapping.
-- --mask_script: (Optional) Path to the masking script (e.g., mask_vcf.py).
-- --maskfile: (Optional) Mask file for the primer scheme.
-- --maskvcf: (Optional) VCF file for masking.
 - --skip_qc: (Optional) Flag to skip the quality control steps.
 - --skip_masking: (Optional) Flag to skip the masking step.
 - --output: Output directory where results will be stored.
@@ -82,15 +86,13 @@ python3 assemble_hantavirus.py \
 - Maps reads against each provided segment reference using **minimap2**.
 - Converts and sorts the mapping output with **samtools** to produce sorted BAM files.
 
-3.	Consensus Calling:
-- Generates consensus sequences from each sorted BAM using samtools **mpileup piped** to **ivar consensus**.
+3.	Optional Masking:
+- If masking parameters are provided and the --skip_masking flag is not set, the pipeline will run a iVar to trim primer reads before calling the consensus sequence.
 
-4.	Mapping Report:
+4.	Consensus Calling:
+- Generates consensus sequences from each sorted BAM using samtools **mpileup** piped to **ivar consensus**.
+
+5.	Mapping Report:
 - Creates a CSV report that summarizes the number and percentage of mapped reads for each sample.
 	
-5.	Optional Masking:
-- If masking parameters are provided and the --skip_masking flag is not set, the pipeline will run an external masking script to produce a final assembled FASTA.
 
-## Pipeline Diagram
-
-![Hantavirus Assembly Pipeline](pipeline_diagram.jpeg)
