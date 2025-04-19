@@ -8,5 +8,4 @@ Test/*
 src/assemble.ipynb
 NanoQC.log
 Reference/*.fasta.fai
-src/get_primerBED.ipynb
-src/coverage_plots.ipynb
+Notebooks/*
