@@ -8,3 +8,4 @@ Test/*
 src/assemble.ipynb
 NanoQC.log
 Reference/*.fasta.fai
+src/*.ipynb
