@@ -86,5 +86,56 @@ def main():
         # Execute the command.
         subprocess.run(cmd, check=True)
 
+    if len(sample_names) > 1:
+            combined = []
+            for sample in sample_names:
+                sample_basename = os.path.basename(sample).split(".")[0]
+                out_dir         = os.path.join(args.output, sample_basename)
+                reports_dir     = os.path.join(out_dir, "Reports")
+                consensus_dir   = os.path.join(out_dir, "Consensus")
+                mapping_dir     = os.path.join(out_dir, "Mapping")
+
+                # load each segment report
+                for fname in os.listdir(reports_dir):
+                    if not fname.endswith("_mapping_report.csv"):
+                        continue
+                    fpath = os.path.join(reports_dir, fname)
+                    dfr   = pd.read_csv(fpath)
+
+                    segment = fname.replace("_mapping_report.csv", "")
+                    dfr["segment"] = segment
+                    dfr["sample"]  = sample_basename
+
+                    # percent non-N
+                    fa = os.path.join(consensus_dir, segment, sample_basename + ".fa")
+                    seq = []
+                    with open(fa) as fh:
+                        for L in fh:
+                            if not L.startswith(">"):
+                                seq.append(L.strip().upper())
+                    seq = "".join(seq)
+                    nonN = sum(1 for c in seq if c != "N")
+                    pct_nonN = (nonN / len(seq) * 100) if seq else 0.0
+                    dfr["percent_non_N"] = round(pct_nonN, 2)
+
+                    # mean depth
+                    bam = os.path.join(mapping_dir, segment, sample_basename + "_trimmed_mapped.bam")
+                    p = subprocess.Popen(
+                        ["samtools", "depth", "-a", bam],
+                        stdout=subprocess.PIPE, text=True
+                    )
+                    depths = [int(line.split()[2]) for line in p.stdout]
+                    p.wait()
+                    mean_depth = (sum(depths) / len(depths)) if depths else 0.0
+                    dfr["mean_depth"] = round(mean_depth, 1)
+
+                    combined.append(dfr)
+
+            if combined:
+                full_df = pd.concat(combined, ignore_index=True)
+                out_csv = os.path.join(args.output, "combined_mapping_report.csv")
+                full_df.to_csv(out_csv, index=False)
+                print(f"Combined mapping report written to {out_csv}")
+
 if __name__ == "__main__":
     main()

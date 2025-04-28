@@ -3,6 +3,7 @@ import argparse
 import subprocess
 import os
 import csv
+from pathlib import Path
 
 # Global flag for dry-run mode.
 DRYRUN = False
@@ -17,6 +18,26 @@ def run_command(cmd):
         print("[DRYRUN] Command:", cmd_str)
     else:
         subprocess.run(cmd, check=True)
+
+def rename_fasta_headers(fasta_file: str) -> None:
+    """
+    In-place: rename all FASTA headers to the sample name (basename without extension).
+    """
+    fasta_path = Path(fasta_file)
+    sample_name = fasta_path.stem  # e.g. "2DZNTT_1_1_SNVT_MIPE_222"
+    
+    # read
+    with fasta_path.open("r") as infile:
+        lines = infile.readlines()
+    
+    # rewrite headers
+    for i, line in enumerate(lines):
+        if line.startswith(">"):
+            lines[i] = f">{sample_name}\n"
+    
+    # write back
+    with fasta_path.open("w") as outfile:
+        outfile.writelines(lines)
 
 def run_fastqc(input_files, output_dir):
     """Run QC using nanoQC on each input file."""
@@ -76,7 +97,8 @@ def primer_masking(bam_files, primer_bed):
                "-p", trimmed_bam_out,
                "-q", "0",
                "-m", "10",
-               "-s", "4"]
+               "-s", "4",
+               "-e"]
         run_command(cmd)
         print(f"Primer masking complete for {bam} -> {trimmed_bam_out}")
         trimmed_bam.append(trimmed_bam_out)
@@ -93,22 +115,34 @@ def call_consensus(bam_files, reference, consensus_dir):
     os.makedirs(consensus_dir, exist_ok=True)
     
     for bam in bam_files:
-        sample_name = os.path.basename(bam).replace("_mapped.bam", "").replace("_sorted.bam", "")
-        output_prefix = os.path.join(consensus_dir, sample_name + "_consensus")
-        
+        bam_path = Path(bam)
+
+        # 1) Drop the “.bam” suffix
+        stem = bam_path.with_suffix("").name  # e.g. "2DZNTT_..._222_trimmed_mapped" or "..._222"
+
+        # 2) Strip any trailing "_trimmed" or "_mapped"
+        for suffix in ("_trimmed_mapped", "_trimmed", "_mapped"):
+            while stem.endswith(suffix):
+                stem = stem[: -len(suffix)]
+
+        sample_name   = stem  # now "2DZNTT_1_1_SNVT_MIPE_222"
+        output_prefix = Path(consensus_dir) / sample_name
+
         cmd_mpileup = [
             "samtools", "mpileup",
             "-d", "0",
             "-A",
             "-Q", "0",
             "-f", reference,
-            bam
+            str(bam_path)
         ]
         cmd_ivar = [
             "ivar", "consensus",
-            "-p", output_prefix,
+            "-p", str(output_prefix),
             "-q", "0",
-            "-t", "0"
+            "-t", "0",
+            "-m", "1",
+            "-n", "N"
         ]
         
         if DRYRUN:
@@ -124,8 +158,11 @@ def call_consensus(bam_files, reference, consensus_dir):
                     print(f"Error generating consensus for {bam}: {err.decode().strip()}")
                 else:
                     print(f"Consensus generated for {bam} with prefix {output_prefix}")
+                    fasta_file = output_prefix.with_suffix(".fa")
+                    rename_fasta_headers(str(fasta_file))
             except Exception as e:
                 print(f"An exception occurred while processing {bam}: {e}")
+
 
 def generate_mapping_report(mapped_files, report_csv):
     """Generate a CSV report with the sample name, number and percentage of mapped reads."""
