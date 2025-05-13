@@ -136,7 +136,7 @@ def call_consensus(bam_files, reference, consensus_dir):
         stem = bam_path.with_suffix("").name  # e.g. "2DZNTT_..._222_trimmed_mapped" or "..._222"
 
         # 2) Strip any trailing "_trimmed" or "_mapped"
-        for suffix in ("_trimmed_mapped", "_trimmed", "_mapped"):
+        for suffix in ("_trimmed_mapped", "_trimmed", "_mapped", "_trimmed_trimmed_sorted"):
             while stem.endswith(suffix):
                 stem = stem[: -len(suffix)]
 
