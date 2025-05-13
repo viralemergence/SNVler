@@ -84,25 +84,40 @@ def run_mapping(input_files, reference, mapping_dir):
 
 def primer_masking(bam_files, primer_bed):
     """
-    Mask reads in the BAM file that overlap with the regions defined in the primer BED file using iVar.
-    Returns a list of masked (trimmed) BAM files.
+    Mask primers using iVar and produce coordinate-sorted BAMs.
+    Returns a list of sorted, masked BAMs ready for consensus calling.
     """
-    trimmed_bam = []
+    trimmed_sorted_bams = []
+
     for bam in bam_files:
         sample_base = os.path.basename(bam).replace("_mapped.bam", "")
-        trimmed_bam_out = os.path.join(os.path.dirname(bam), f"{sample_base}_trimmed.bam")
-        cmd = ["ivar", "trim",
-               "-i", bam,
-               "-b", primer_bed,
-               "-p", trimmed_bam_out,
-               "-q", "0",
-               "-m", "10",
-               "-s", "4",
-               "-e"]
-        run_command(cmd)
-        print(f"Primer masking complete for {bam} -> {trimmed_bam_out}")
-        trimmed_bam.append(trimmed_bam_out)
-    return trimmed_bam
+        out_dir = os.path.dirname(bam)
+
+        # Step 1: Run ivar trim
+        trimmed_unsorted = os.path.join(out_dir, f"{sample_base}_trimmed.bam")
+        cmd_trim = [
+            "ivar", "trim",
+            "-i", bam,
+            "-b", primer_bed,
+            "-p", trimmed_unsorted.replace(".bam", ""),  # output prefix
+            "-q", "0",
+            "-m", "10",
+            "-s", "4",
+            "-e"
+        ]
+        run_command(cmd_trim)
+        print(f"Primer masking complete for {bam} -> {trimmed_unsorted}")
+
+        trimmed_sorted = trimmed_unsorted.replace(".bam", "_sorted.bam")
+        cmd_sort = ["samtools", "sort", "-o", trimmed_sorted, trimmed_unsorted]
+        run_command(cmd_sort)
+
+        cmd_index = ["samtools", "index", trimmed_sorted]
+        run_command(cmd_index)
+
+        trimmed_sorted_bams.append(trimmed_sorted)
+
+    return trimmed_sorted_bams
 
 def call_consensus(bam_files, reference, consensus_dir):
     """
