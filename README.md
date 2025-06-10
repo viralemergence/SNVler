@@ -1,16 +1,17 @@
 # Hantavirus Assembly Pipeline
 
-This repository contains a standalone Python pipeline for assembling segmented Hantavirus genomes from Nanopore sequencing data. The pipeline performs quality control, mapping, consensus sequence generation, and report creation. An optional masking step is also available (requires a bed file containing primer sequences and coordinates, to date, it has not been implemented).
-
+This repository contains a standalone Python pipeline for assembling segmented Hantavirus genomes from Nanopore sequencing data. The pipeline performs quality control, mapping, primer masking, consensus sequence generation, and report creation.
+The pipeline should be able to assemble any viral genome if the required files are provided.
 ## Overview
 
 The pipeline is designed specifically for Nanopore data and supports segmented genomes. For each segment (e.g., L, M, S), the tool:
 
 - Runs quality control (QC) using **nanoQC** and **porechop**.
 - Maps reads to the provided segment-specific reference using **minimap2** and sorts the output with **samtools**.
+- Performs primer masking using **iVar** with an user-provided bed file specifying the sequence and position of the primers.
 - Generates a consensus sequence with **samtools mpileup** piped to **ivar consensus**.
 - Creates a CSV mapping report summarizing read mapping statistics.
-- Optionally performs a masking step (via an external masking script) to produce a final FASTA assembly.
+
 
 ## Requirements
 
@@ -22,7 +23,7 @@ Ensure the following command-line tools are installed and available in your `PAT
 - **porechop** – Adapter trimming for Nanopore reads.
 - **minimap2** – Read mapping.
 - **samtools** – BAM file manipulation and read statistics.
-- **ivar** – Consensus calling.
+- **ivar** – Primer masking and consensus calling.
 
 You can install these using [Conda](https://docs.conda.io/en/latest/) from the `conda-forge` and `bioconda` channels:
 
@@ -85,14 +86,14 @@ python3 assemble_hantavirus.py \
 2. **Mapping:**
 - Maps reads against each provided segment reference using **minimap2**.
 - Converts and sorts the mapping output with **samtools** to produce sorted BAM files.
-
-3.	Optional Masking:
+  
+3. **Primer Masking*
 - If masking parameters are provided and the --skip_masking flag is not set, the pipeline will run a iVar to trim primer reads before calling the consensus sequence.
 
-4.	Consensus Calling:
+4. **Consensus Calling**:
 - Generates consensus sequences from each sorted BAM using samtools **mpileup** piped to **ivar consensus**.
 
-5.	Mapping Report:
+5. **Mapping Report**:
 - Creates a CSV report that summarizes the number and percentage of mapped reads for each sample.
 	
 
