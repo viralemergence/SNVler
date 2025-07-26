@@ -30,6 +30,8 @@ def main():
                         help="Dry run: print commands without executing them")
     parser.add_argument("--assemble_script", default="assemble.py",
                         help="Path to the assemble.py script (default: assemble.py)")
+    parser.add_argument("--stringent", required=False, default=False, action="store_true",
+                        help="Use stringent mode for assembly")
     args = parser.parse_args()
 
     # Read the sample file based on extension.

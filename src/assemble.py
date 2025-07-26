@@ -119,7 +119,7 @@ def primer_masking(bam_files, primer_bed):
 
     return trimmed_sorted_bams
 
-def call_consensus(bam_files, reference, consensus_dir):
+def call_consensus(bam_files, reference, consensus_dir, stringent=False):
     """
     For each sorted BAM file, generate a consensus sequence.
     
@@ -151,14 +151,24 @@ def call_consensus(bam_files, reference, consensus_dir):
             "-f", reference,
             str(bam_path)
         ]
-        cmd_ivar = [
-            "ivar", "consensus",
-            "-p", str(output_prefix),
-            "-q", "0",
-            "-t", "0",
-            "-m", "1",
-            "-n", "N"
-        ]
+        if stringent:
+            cmd_ivar = [
+                "ivar", "consensus",
+                "-p", str(output_prefix),
+                "-q", "0",
+                "-t", "0.75",
+                "-m", "10",
+                "-n", "N"
+            ]
+        else:
+            cmd_ivar = [
+                "ivar", "consensus",
+                "-p", str(output_prefix),
+                "-q", "0",
+                "-t", "0",
+                "-m", "1",
+                "-n", "N"
+            ]
         
         if DRYRUN:
             print("[DRYRUN] Would execute:", " ".join(cmd_mpileup), "|", " ".join(cmd_ivar))
@@ -231,6 +241,8 @@ def main():
                         help="Dry run: print commands without executing")
     parser.add_argument("--output", required=True,
                         help="Output directory for results")
+    parser.add_argument("--stringent", action="store_true", required=False,
+                        help="Use stringent mode for assembly")
     args = parser.parse_args()
 
     DRYRUN = args.dryrun
@@ -279,7 +291,7 @@ def main():
             masked_files = mapped_files
         
         # Step 5: Consensus calling for this segment.
-        call_consensus(masked_files, ref, segment_consensus_dir)
+        call_consensus(masked_files, ref, segment_consensus_dir, stringent=args.stringent)
         
         # Step 6: Generate mapping report for this segment.
         generate_mapping_report(mapped_files, segment_report)

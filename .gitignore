@@ -9,3 +9,4 @@ src/assemble.ipynb
 NanoQC.log
 Reference/*.fasta.fai
 Notebooks/*
+Stringent/*
