@@ -75,6 +75,7 @@ python3 assemble_hantavirus.py \
 - --skip_qc: (Optional) Flag to skip the quality control steps.
 - --skip_masking: (Optional) Flag to skip the masking step.
 - --output: Output directory where results will be stored.
+- --stringent: Performs consensus calling using iVar with more stringent parameters. Specifically, a minimum depth of 10X and a nucleotide frequency of 0.75. Use it if you want to avoid ambiguous bases (IUPAC) or validate the presence of indels.
 
 ## Pipeline Workflow
 
