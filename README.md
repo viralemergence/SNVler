@@ -65,7 +65,8 @@ python3 assemble_hantavirus.py \
   --mask_script /path/to/mask_vcf.py \
   --maskfile /path/to/maskfile.txt \
   --maskvcf /path/to/mask.vcf \
-  --output /path/to/output
+  --output /path/to/output \
+  --stringent #optional
 ```
 ### Command-Line arguments
 
