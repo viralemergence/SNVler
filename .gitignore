@@ -2,6 +2,14 @@
 ./Test 
 .DS_Store
 */DS_Store
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+benchmark_results/
 *.html
 Results/*
 Test/*
@@ -10,3 +18,4 @@ NanoQC.log
 Reference/*.fasta.fai
 Notebooks/*
 Stringent/*
+/test_fastqs

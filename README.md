@@ -1,101 +1,158 @@
-# Hantavirus Assembly Pipeline
+# SNVler
 
-This repository contains a standalone Python pipeline for assembling segmented Hantavirus genomes from Nanopore sequencing data. The pipeline performs quality control, mapping, primer masking, consensus sequence generation, and report creation.
-The pipeline should be able to assemble any viral genome if the required files are provided.
-## Overview
+SNVler is a Python package and command-line workflow for assembling segmented viral genomes from Nanopore reads. It runs QC, adapter trimming, mapping, primer masking, consensus calling, and mapping reports around common bioinformatics tools.
 
-The pipeline is designed specifically for Nanopore data and supports segmented genomes. For each segment (e.g., L, M, S), the tool:
-
-- Runs quality control (QC) using **nanoQC** and **porechop**.
-- Maps reads to the provided segment-specific reference using **minimap2** and sorts the output with **samtools**.
-- Performs primer masking using **iVar** with an user-provided bed file specifying the sequence and position of the primers.
-- Generates a consensus sequence with **samtools mpileup** piped to **ivar consensus**.
-- Creates a CSV mapping report summarizing read mapping statistics.
-
+The package can be used from a terminal, a Python script, or a notebook.
 
 ## Requirements
 
-### External Tools
+SNVler installs the Python dependencies with `pip`:
 
-Ensure the following command-line tools are installed and available in your `PATH`:
+- Biopython
+- openpyxl
+- pandas
 
-- **nanoQC** – Quality control for raw reads.
-- **porechop** – Adapter trimming for Nanopore reads.
-- **minimap2** – Read mapping.
-- **samtools** – BAM file manipulation and read statistics.
-- **ivar** – Primer masking and consensus calling.
+The assembly workflow also requires these external command-line tools on `PATH`:
 
-You can install these using [Conda](https://docs.conda.io/en/latest/) from the `conda-forge` and `bioconda` channels:
+- nanoQC
+- porechop
+- minimap2
+- samtools
+- ivar
+
+A Conda/Bioconda environment is the recommended way to install the external tools:
 
 ```bash
-#If installing on an ARM mac (M processor), create an OSX-64 environment first
-CONDA_SUBDIR=osx-64 conda create -n SNVler python=3.11
-#Activate the environment
-conda activate SNVler
-#Install packages
-conda install -c conda-forge -c bioconda nanoQC porechop minimap2 samtools ivar pandas
+conda create -n snvler python=3.11 -y
+conda activate snvler
+conda install -c conda-forge -c bioconda nanoqc porechop minimap2 samtools ivar -y
 ```
-
-### Python Dependencies
-
-The pipeline requires Python 3.6+ (tested with Pytho 3.11.8) and the following libraries
-- **Biopython**
-- **cyvcf2**
-- **pandas**
 
 ## Installation
-1. **Clone the repository**
+
+For local development:
 
 ```bash
-git clone https://github.com/viralemergence/SNVler.git
-cd hantavirus-assembly
+python -m pip install -e ".[dev]"
 ```
 
-2. Install the required external tools and Python dependencies as described in the Requirements section.
-
-## Basic Usage
-
-You can declare each sample individually, or you can use an Excel/CSV file to automatically assemble the genomes from all the samples in a directory
+From GitHub:
 
 ```bash
-python3 assemble_hantavirus.py \
-  --input sample1.fastq sample2.fastq \
-  --references Hanta_L.fasta Hanta_M.fasta Hanta_S.fasta \
-  --primer_bed /path/to/primer.bed \
-  --mask_script /path/to/mask_vcf.py \
-  --maskfile /path/to/maskfile.txt \
-  --maskvcf /path/to/mask.vcf \
-  --output /path/to/output \
-  --stringent #optional
+python -m pip install "git+https://github.com/viralemergence/SNVler.git"
 ```
-### Command-Line arguments
 
-- --input: One or more input FASTQ (or FAST5) files.
-- --references: One or more reference FASTA files for each genome segment.
-- --primer_bed: (Optional) Primer BED file for trimming/mapping.
-- --skip_qc: (Optional) Flag to skip the quality control steps.
-- --skip_masking: (Optional) Flag to skip the masking step.
-- --output: Output directory where results will be stored.
-- --stringent: Performs consensus calling using iVar with more stringent parameters. Specifically, a minimum depth of 10X and a nucleotide frequency of 0.75. Use it if you want to avoid ambiguous bases (IUPAC) or validate the presence of indels.
+After installation, check the external tools:
 
-## Pipeline Workflow
+```bash
+snvler doctor
+```
 
-1. **Quality Control (QC):**
-- Runs **nanoQC** on each input.
-- Trims reads using **porechop**
-- _Optional:_ Skip QC using the --skip-qc flag.
+## Command-Line Usage
 
-2. **Mapping:**
-- Maps reads against each provided segment reference using **minimap2**.
-- Converts and sorts the mapping output with **samtools** to produce sorted BAM files.
-  
-3. **Primer Masking*
-- If masking parameters are provided and the --skip_masking flag is not set, the pipeline will run a iVar to trim primer reads before calling the consensus sequence.
+Assemble one sample:
 
-4. **Consensus Calling**:
-- Generates consensus sequences from each sorted BAM using samtools **mpileup** piped to **ivar consensus**.
+```bash
+snvler assemble \
+  --input sample.fastq \
+  --references Reference/NM11_LRef.fasta Reference/NM11_MRef.fasta Reference/NM11_SRef.fasta \
+  --primer-bed Primers/SNV_L_primers.bed Primers/SNV_M_primers.bed Primers/SNV_S_primers.bed \
+  --threads 4 \
+  --output Results/sample
+```
 
-5. **Mapping Report**:
-- Creates a CSV report that summarizes the number and percentage of mapped reads for each sample.
-	
+Run without executing external tools:
 
+```bash
+snvler assemble \
+  --input tests/fixtures/sample.fastq \
+  --references Reference/NM11_SRef.fasta \
+  --primer-bed Primers/SNV_S_primers.bed \
+  --skip-qc \
+  --dry-run \
+  --output Results/dryrun
+```
+
+Assemble samples listed in a CSV or Excel file:
+
+```bash
+snvler batch \
+  --samplefile samples.xlsx \
+  --col sample \
+  --base-path Reads \
+  --references Reference/NM11_LRef.fasta Reference/NM11_MRef.fasta Reference/NM11_SRef.fasta \
+  --primer-bed Primers/SNV_L_primers.bed Primers/SNV_M_primers.bed Primers/SNV_S_primers.bed \
+  --combined-reference \
+  --threads 4 \
+  --jobs 2 \
+  --use-index \
+  --index-dir Results/indexes \
+  --report-mode idxstats \
+  --output Results
+```
+
+For segmented genomes, `--combined-reference` maps each sample once to a multi-segment reference and then splits the BAM by segment. This is usually faster than mapping the same reads separately to each segment. `--threads` is passed to minimap2 and samtools, `--jobs` runs independent samples in parallel during `snvler batch`, and `--use-index` reuses minimap2 `.mmi` indexes.
+
+Generate an iVar primer BED file:
+
+```bash
+snvler primers-to-bed \
+  --excel-file Primers/Primers_tiling.xlsx \
+  --fasta-file Reference/NM11_SRef.fasta \
+  --bed-output Primers/SNV_S_primers.generated.bed
+```
+
+## Python Usage
+
+```python
+from snvler import Segment, assemble_sample
+
+segments = [
+    Segment("L", "Reference/NM11_LRef.fasta", "Primers/SNV_L_primers.bed"),
+    Segment("M", "Reference/NM11_MRef.fasta", "Primers/SNV_M_primers.bed"),
+    Segment("S", "Reference/NM11_SRef.fasta", "Primers/SNV_S_primers.bed"),
+]
+
+result = assemble_sample(
+    ["sample.fastq"],
+    segments,
+    "Results/sample",
+    stringent=True,
+    combined_reference=True,
+    threads=4,
+    use_index=True,
+    index_dir="Results/indexes",
+    report_mode="idxstats",
+)
+```
+
+Bundled SNV reference and primer files are also available through `snvler.resources`:
+
+```python
+from snvler.resources import data_file
+
+with data_file("reference", "NM11_SRef.fasta") as reference:
+    print(reference)
+```
+
+## Development Checks
+
+```bash
+python -m compileall -q src tests
+python -m pytest
+python -m build
+```
+
+## Docker
+
+Build from the repository root:
+
+```bash
+docker build -f src/dockerfile -t snvler .
+```
+
+Run the CLI:
+
+```bash
+docker run --rm snvler doctor
+```

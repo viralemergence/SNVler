@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snvler"
+version = "0.1.0"
+description = "Nanopore viral genome assembly pipeline with segmented genome support"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Viral Emergence Lab" }
+]
+dependencies = [
+  "biopython>=1.80",
+  "openpyxl>=3.1",
+  "pandas>=2.0"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "pytest>=8.0"
+]
+
+[project.scripts]
+snvler = "snvler.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["snvler*"]
+
+[tool.setuptools.package-data]
+snvler = [
+  "data/primers/*.bed",
+  "data/primers/*.xlsx",
+  "data/reference/*.fasta"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
